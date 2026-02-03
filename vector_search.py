@@ -225,11 +225,8 @@ class VectorSearchEngine:
     """
     Main interface for vector similarity search.
     
-    Provides methods to create and use both exact and approximate search indices.
+    Provides factory methods to create and use both exact and approximate search indices.
     """
-    
-    def __init__(self):
-        pass
     
     @staticmethod
     def create_brute_force_index():

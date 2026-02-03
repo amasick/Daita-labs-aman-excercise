@@ -139,6 +139,10 @@ def main():
     print(f"  BruteForce Index: built in {bf_build_time:.2f}s")
     
     # Build LSH index
+    # Note: Using 12 tables and 7 hyperplanes provides a balance between recall and speed
+    # for this dataset size (10k vectors). With 7 hyperplanes, we get 2^7 = 128 buckets,
+    # which is a reasonable granularity for 10k vectors. More tables improve recall by
+    # providing multiple hash functions. Adjust these parameters based on dataset size.
     lsh_start = time.time()
     lsh_index = VectorSearchEngine.create_lsh_index(num_tables=12, num_hyperplanes=7)
     lsh_index.build(vectors, vector_ids.tolist())
