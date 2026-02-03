@@ -1,0 +1,48 @@
+{
+  "syndata": {
+    "dataset": "Synthetic Dataset",
+    "bruteforce": {
+      "name": "BruteForce (Exact)",
+      "recall@10": 1.0,
+      "recall@50": 1.0,
+      "recall@100": 1.0,
+      "avg_latency_ms": 1.081991195678711,
+      "num_queries": 10
+    },
+    "lsh": {
+      "name": "LSH (Approximate)",
+      "recall@10": 0.31000000000000005,
+      "recall@50": 0.28400000000000003,
+      "recall@100": 0.255,
+      "avg_latency_ms": 1.3284683227539062,
+      "num_queries": 10
+    },
+    "build_times": {
+      "bruteforce": 0.0,
+      "lsh": 0.7139632701873779
+    }
+  },
+  "fmnist": {
+    "dataset": "Fashion-MNIST Dataset",
+    "bruteforce": {
+      "name": "BruteForce (Exact)",
+      "recall@10": 1.0,
+      "recall@50": 1.0,
+      "recall@100": 1.0,
+      "avg_latency_ms": 0.4194974899291992,
+      "num_queries": 10
+    },
+    "lsh": {
+      "name": "LSH (Approximate)",
+      "recall@10": 0.9800000000000001,
+      "recall@50": 0.9559999999999998,
+      "recall@100": 0.951,
+      "avg_latency_ms": 4.605436325073242,
+      "num_queries": 10
+    },
+    "build_times": {
+      "bruteforce": 0.0,
+      "lsh": 0.8004975318908691
+    }
+  }
+}
