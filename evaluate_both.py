@@ -142,9 +142,9 @@ def evaluate_dataset(dataset):
     
     # Build LSH index with optimized parameters
     print("Building LSH (Approximate) Index...")
-    print("  Parameters: num_tables=12, num_hyperplanes=7")
+    print("  Parameters: num_tables=30, num_hyperplanes=6")
     lsh_start = time.time()
-    lsh_index = VectorSearchEngine.create_lsh_index(num_tables=12, num_hyperplanes=7)
+    lsh_index = VectorSearchEngine.create_lsh_index(num_tables=30, num_hyperplanes=6)
     lsh_index.build(vectors, vector_ids)
     lsh_build_time = time.time() - lsh_start
     print(f"  Built in {lsh_build_time:.4f}s\n")
