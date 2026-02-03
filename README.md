@@ -109,13 +109,19 @@ This project involved multiple iterations to optimize LSH performance. Here's th
 
 **Results:**
 - Synthetic: **73.6% recall@100** ✅ (3x improvement!)
-- Fashion-MNIST: **100% recall@100** ✅ (perfect!)
+- Fashion-MNIST: **100% recall@100** on 10 test queries
 
 **Why It Worked:**
 - Balance between redundancy (tables) and bucket density (hyperplanes)
 - Each table has denser buckets, increasing candidate pool
 - Multiple tables compensate for cases where a single projection fails
 - Sweet spot for 10K vector dataset
+
+**Evaluation Limitation:**
+- Only 10 queries have ground truth (not all 100)
+- Small sample size may not represent full distribution
+- 100% recall on 10 queries is promising but not statistically robust
+- Realistic expectation: 95-100% recall on larger test set
 
 ---
 
@@ -137,6 +143,20 @@ Comprehensive evaluation was conducted on two datasets with distinct characteris
 
 #### Fashion-MNIST Dataset (Real-World Semantic Data)
 | Algorithm | Recall@10 | Recall@100 | Latency (ms) | Build Time (s) |
+|-----------|-----------|-----------|--------------|----------------|
+| **BruteForce** | 1.000 | 1.000 | 0.80 | 0.00 |
+| **LSH (30×6)** | 1.000 | 1.000* | 7.66 | 1.90 |
+
+\* _Evaluated on only 10 test queries (small sample size)_
+
+**Analysis:**
+- LSH achieves 100% recall on 10 test queries
+- **Important Caveat**: Only 10 queries have ground truth, not statistically conclusive
+- **Why it works well**: Image embeddings naturally cluster by similarity; hyperplanes capture semantic structure  
+- **Realistic expectation**: 95-100% recall on larger test set with these parameters
+- **Takeaway**: LSH works exceptionally well on structured real-world data
+
+### Key Insights
 
 1. **Iterative Problem-Solving**
    - Started with poor synthetic recall (25.5%)
@@ -157,7 +177,7 @@ Comprehensive evaluation was conducted on two datasets with distinct characteris
    - **Key Insight:** 30 tables × 6 planes > 20 tables × 10 planes (more redundancy, less fragmentation)
 
 4. **Data Structure Matters More Than Algorithm**
-   - Same algorithm: 73.6% (random) vs 100% (semantic) recall
+   - Same algorithm: 73.6% (random) vs 100%* (semantic) recall on small test set
    - Real-world embeddings naturally cluster → LSH excels
    - Random uniform data lacks structure → LSH struggles
    - **Takeaway:** Algorithm selection depends on data characteristics
@@ -266,15 +286,21 @@ This analysis led to the final optimized configuration.
 - Implementation is clean, well-documented, and modular
 - Cosine similarity correctly implemented
 - BruteForce algorithm works perfectly (100% accuracy)
-- LSH excels on real-world semantic data (100% recall on Fashion-MNIST)
+- LSH excels on real-world semantic data (100% recall on 10 Fashion-MNIST queries)
 - Comprehensive evaluation framework with proper metrics
 - Parameter tuning successfully improved synthetic recall from 25.5% → 73.6%
 
 ### What Needs Improvement ⚠️
-- LSH on random synthetic data remains fundamentally limited (73.6% recall)
+- **Limited Evaluation Set**: Only 10 queries have ground truth, not statistically robust
+  - Need 100+ queries for reliable recall measurements
+  - Current 100% Fashion-MNIST recall may be due to small sample size
+  - Should generate ground truth for all 100 queries for production evaluation
+- **LSH on random synthetic data** remains fundamentally limited (73.6% recall)
   - Reason: Random hyperplanes don't partition uniform distributions well
   - This is a limitation of the algorithm on this data type, not implementation
-- LSH is slower than BruteForce on 10K vectors (expected - small dataset limitation)
+- **LSH is slower than BruteForce** on 10K vectors (expected - small dataset limitation)
+  - Build overhead (~1.8s) + query latency (7-8ms) vs BruteForce (0s build + 0.8-1.7ms query)
+  - LSH becomes faster only at 100K+ vectors
 
 ### Learning Outcomes
 
