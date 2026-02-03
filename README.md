@@ -64,6 +64,61 @@ Your system should implement:
 
 ## Results & Discussion
 
+### Approach & Iteration Process
+
+This project involved multiple iterations to optimize LSH performance. Here's the complete journey:
+
+#### **Iteration 1: Initial Implementation (12 tables, 7 hyperplanes)**
+**Hypothesis:** Standard configuration should work reasonably well for both datasets.
+
+**Results:**
+- Synthetic: 25.5% recall@100
+- Fashion-MNIST: 95.1% recall@100
+
+**Analysis:** 
+- Fashion-MNIST worked excellently due to semantic clustering
+- Synthetic data performed poorly - only 1 in 4 neighbors found
+- Issue: Not enough hash tables to provide redundancy for random data
+
+---
+
+#### **Iteration 2: Increase Both Parameters (20 tables, 10 hyperplanes)**
+**Hypothesis:** More tables + more hyperplanes = better partitioning = higher recall.
+
+**Results:**
+- Synthetic: **10.8% recall@100** ❌ (WORSE!)
+- Fashion-MNIST: 92.3% recall@100 (still good but slightly decreased)
+
+**What Went Wrong:**
+- More hyperplanes create smaller, more granular buckets
+- With 10 hyperplanes, we get 2^10 = 1024 possible buckets per table
+- Vectors spread too thinly across buckets
+- Fewer candidates retrieved per query → worse recall
+- **Key Learning:** More parameters don't always help - created over-fragmentation
+
+---
+
+#### **Iteration 3: More Tables, Fewer Hyperplanes (30 tables, 6 hyperplanes)**
+**Hypothesis:** Increase redundancy (tables) while keeping buckets dense (fewer hyperplanes).
+
+**Reasoning:**
+- 6 hyperplanes = 2^6 = 64 buckets per table (manageable)
+- 30 tables = 30 chances to find similar vectors in different projections
+- Larger buckets mean more candidates per query
+- More tables provide redundancy without over-partitioning
+
+**Results:**
+- Synthetic: **73.6% recall@100** ✅ (3x improvement!)
+- Fashion-MNIST: **100% recall@100** ✅ (perfect!)
+
+**Why It Worked:**
+- Balance between redundancy (tables) and bucket density (hyperplanes)
+- Each table has denser buckets, increasing candidate pool
+- Multiple tables compensate for cases where a single projection fails
+- Sweet spot for 10K vector dataset
+
+---
+
 ### Performance Evaluation
 
 Comprehensive evaluation was conducted on two datasets with distinct characteristics:
@@ -82,10 +137,43 @@ Comprehensive evaluation was conducted on two datasets with distinct characteris
 
 #### Fashion-MNIST Dataset (Real-World Semantic Data)
 | Algorithm | Recall@10 | Recall@100 | Latency (ms) | Build Time (s) |
-|-----------|-----------|-----------|--------------|----------------|
-| **BruteForce** | 1.000 | 1.000 | 0.80 | 0.00 |
-| **LSH (30×6)** | 1.000 | 1.000 | 7.66 | 1.90 |
 
+1. **Iterative Problem-Solving**
+   - Started with poor synthetic recall (25.5%)
+   - First optimization attempt failed (dropped to 10.8%)
+   - Analyzed why it failed, formed new hypothesis
+   - Final optimization succeeded (improved to 73.6%)
+   - **Lesson:** Trial and error with analysis leads to breakthroughs
+
+2. **Algorithm Trade-offs**
+   - Not all "advanced" algorithms are better - context matters
+   - Small datasets (10K) don't benefit from LSH speed-wise
+   - Accuracy vs speed trade-off is data-dependent
+
+3. **Parameter Tuning is Non-Trivial**
+   - More parameters ≠ better performance
+   - Need to understand underlying mechanism (bucket density vs redundancy)
+   - Optimal configuration varies by dataset size and structure
+   - **Key Insight:** 30 tables × 6 planes > 20 tables × 10 planes (more redundancy, less fragmentation)
+
+4. **Data Structure Matters More Than Algorithm**
+   - Same algorithm: 73.6% (random) vs 100% (semantic) recall
+   - Real-world embeddings naturally cluster → LSH excels
+   - Random uniform data lacks structure → LSH struggles
+   - **Takeaway:** Algorithm selection depends on data characteristics
+
+5. **Theoretical vs Practical Performance**
+   - LSH is theoretically sub-linear, but on 10K vectors BruteForce wins
+   - Build overhead and hash table management dominate on small datasets
+   - Benefits emerge at scale (100K+ vectors)
+
+6. **Problem-Solving Methodology**
+   - Measure baseline performance
+   - Form hypothesis about improvement
+   - Test hypothesis empirically
+   - Analyze results (success or failure)
+   - Iterate with new insights
+   - Document the journey, not just the final solution
 **Analysis:**
 - LSH achieves perfect 100% recall on real data ✅
 - **Why**: Image embeddings naturally cluster by similarity; random hyperplanes capture semantic structure
@@ -119,6 +207,60 @@ Comprehensive evaluation was conducted on two datasets with distinct characteris
 | Large datasets (100K+ vectors) | **LSH** | Sub-linear query time becomes critical |
 | Need 100% accuracy | **BruteForce** | Only guarantees exact results |
 | Speed critical, some loss OK | **LSH** | Can achieve 90%+ recall with tuning |
+
+---
+
+### Technical Deep Dive: Why Parameters Matter
+
+#### **Understanding LSH Mechanics**
+
+LSH works by:
+1. Generating random hyperplanes to partition vector space
+2. Assigning vectors to buckets based on which side of hyperplanes they fall
+3. At query time, only checking vectors in the same bucket(s)
+
+#### **The Trade-off**
+
+**Hyperplanes (bucket granularity):**
+- More hyperplanes = 2^n buckets = finer partitioning
+- Finer partitioning = more precise but smaller buckets
+- Smaller buckets = fewer candidates = potentially missing neighbors
+
+**Tables (redundancy):**
+- More tables = more independent hash functions
+- Different projections capture different similarity aspects
+- Increases chance of finding neighbors missed by other tables
+
+#### **Why (20, 10) Failed**
+
+```
+20 tables × 10 hyperplanes:
+- 2^10 = 1024 buckets per table
+- 10,000 vectors ÷ 1024 buckets ≈ 9.8 vectors per bucket
+- Too few candidates retrieved per query
+- Even with 20 tables, couldn't compensate for sparse buckets
+```
+
+#### **Why (30, 6) Succeeded**
+
+```
+30 tables × 6 hyperplanes:
+- 2^6 = 64 buckets per table  
+- 10,000 vectors ÷ 64 buckets ≈ 156 vectors per bucket
+- Rich candidate pool per query
+- 30 tables provide excellent redundancy
+- Balance: dense buckets + high redundancy
+```
+
+#### **Key Formula**
+```
+Average bucket density = n_vectors / (2^n_hyperplanes)
+Optimal: ~100-200 vectors per bucket for 10K dataset
+```
+
+This analysis led to the final optimized configuration.
+
+---
 
 ### What Worked Well ✅
 - Implementation is clean, well-documented, and modular
